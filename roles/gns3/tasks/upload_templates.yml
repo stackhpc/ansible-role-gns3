@@ -1,0 +1,6 @@
+# loop through given templates and upload them to the GNS3 server
+
+# use library/template_upload.py
+- name: Upload GNS3 Templates
+  gns3_template_upload:
+    templates: "{{ gns3_templates }}"

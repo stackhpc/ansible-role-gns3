@@ -1,0 +1,5 @@
+# create project with given name using gns3fy
+---
+- name: Create GNS3 Project
+  gns3_project:
+    project_name: "{{ gns3_project_name }}"

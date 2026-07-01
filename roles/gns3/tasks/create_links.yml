@@ -1,0 +1,5 @@
+---
+- name: Create GNS3 Links
+  link_nodes:
+    project_name: "{{ gns3_project_name }}"
+    links: "{{ gns3_links }}"

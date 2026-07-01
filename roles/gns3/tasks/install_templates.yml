@@ -1,0 +1,46 @@
+---
+- name: Ensure QEMU image directory exists
+  ansible.builtin.file:
+    path: /opt/gns3/images/QEMU
+    state: directory
+
+#  curl -Ls https://dl.dell.com/downloads/WK6PP_Dell-SmartFabric-OS10-Version,-10.5.6.13,-GNS3-Bundle.zip \
+#     -o "$HOME/Dell-SmartFabric-OS10.5.6.13.zip" \
+#     -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+- name: Download DellOS10 Virtualisation Bundle
+  ansible.builtin.get_url:
+    url: https://dl.dell.com/downloads/WK6PP_Dell-SmartFabric-OS10-Version,-10.5.6.13,-GNS3-Bundle.zip
+    dest: "{{ gns3_work_dir }}/Dell-SmartFabric-OS10.5.6.13.zip"
+
+- name: Unzip DellOS10 Virtualisation Bundle
+  ansible.builtin.unarchive:
+    src: "{{ gns3_work_dir }}/Dell-SmartFabric-OS10.5.6.13.zip"
+    dest: "{{ gns3_work_dir }}/DellOS10"
+    remote_src: true
+
+
+- name: Move .vmdk files to /opt/gns3/images/QEMU/ #
+  ansible.builtin.shell: |
+    for file in "{{ gns3_work_dir }}/DellOS10"/*.vmdk; do
+        if [ -f "$file" ]; then
+            filename=$(basename "$file")
+            if [ ! -f "/opt/gns3/images/QEMU/$filename" ]; then
+                sudo mv "$file" /opt/gns3/images/QEMU/
+                echo "Moved $filename to /opt/gns3/images/QEMU/"
+            else
+        echo "$filename already exists in QEMU/, skipping."
+            fi
+        fi
+    done
+
+- name: Find Dell OS10 template files
+  ansible.builtin.find:
+    paths: "{{ gns3_work_dir }}/DellOS10"
+    patterns: "*.gns3a"
+    file_type: file
+  register: dellos10_templates
+
+- name: Set template upload list
+  ansible.builtin.set_fact:
+    gns3_templates: "{{ dellos10_templates.files | map(attribute='path') | list }}"
