@@ -1,23 +1,23 @@
 ---
-gns3_work_dir: "{{ ansible_env.HOME }}/gns3-work"
+gns3_work_dir: "{{ ansible_facts['env']['HOME'] }}/gns3-work"
 
-gns3_cloud_ports_mapping:
-  - interface: breth1
-    name: breth1
-    port_number: 0
-    type: ethernet
-  - interface: dummy1
-    name: dummy1
-    port_number: 1
-    type: ethernet
-  - interface: enp3s0
-    name: enp3s0
-    port_number: 2
-    type: ethernet
-  - interface: virbr0
-    name: virbr0
-    port_number: 3
-    type: ethernet
+# gns3_cloud_ports_mapping: # can do a precheck for values and leave it undefined
+#   - interface: breth1
+#     name: breth1
+#     port_number: 0
+#     type: ethernet
+#   - interface: dummy1
+#     name: dummy1
+#     port_number: 1
+#     type: ethernet
+#   - interface: enp3s0
+#     name: enp3s0
+#     port_number: 2
+#     type: ethernet
+#   - interface: virbr0
+#     name: virbr0
+#     port_number: 3
+#     type: ethernet
 
 gns3_links:
   - source_node: "{{ gns3_node_type }}"
@@ -28,3 +28,7 @@ gns3_links:
     target_port: 0
 
 gns3_templates: []
+
+# Configuration
+management_ip: "192.168.33.10/24"
+management_interface: "mgmt 1/1/1"

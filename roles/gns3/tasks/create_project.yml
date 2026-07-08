@@ -1,5 +1,12 @@
-# create project with given name using gns3fy
 ---
+- name: Install gns3fy and Pydantic
+  ansible.builtin.pip:
+    name:
+      - gns3fy
+      - pydantic==1.9.2
+    state: present
+
+
 - name: Create GNS3 Project
-  gns3_project:
+  gns3_create_project:
     project_name: "{{ gns3_project_name }}"

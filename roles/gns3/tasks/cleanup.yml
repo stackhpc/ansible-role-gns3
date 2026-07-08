@@ -1,0 +1,4 @@
+---
+- name: Delete GNS3 project
+  gns3_delete_project:
+    project_name: "{{ gns3_project_name }}"

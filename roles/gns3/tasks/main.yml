@@ -1,23 +1,33 @@
 ---
-- name: Gather Minimal Facts
-  ansible.builtin.setup:
-    gather_subset:
-      - min
+- name: Install, configure, and establish connection to GNS3 server
+  block:
+    - name: Gather Minimal Facts
+      ansible.builtin.setup:
+        gather_subset:
+          - min
 
-- name: Install GNS3 Server
-  import_tasks: install_gns3.yml
+    - name: Install GNS3 Server
+      import_tasks: install_gns3.yml
 
-- name: Create GNS3 Project
-  import_tasks: create_project.yml
+    - name: Create GNS3 Project
+      import_tasks: create_project.yml
 
-- name: Install GNS3 Templates
-  import_tasks: install_templates.yml
+    - name: Install GNS3 DellOS10 Templates
+      import_tasks: install_dellos10_templates.yml
+      when: switch_type == "dellos10"
 
-- name: Upload GNS3 Templates
-  import_tasks: upload_templates.yml
+    - name: Upload GNS3 Templates
+      import_tasks: upload_templates.yml
 
-- name: Create GNS3 Nodes
-  import_tasks: create_nodes.yml
+    - name: Create GNS3 Nodes
+      import_tasks: create_nodes.yml
 
-- name: Create GNS3 Links
-  import_tasks: create_links.yml
+    - name: Create GNS3 Links
+      import_tasks: create_links.yml
+
+    - name: Establish Switch Connection
+      import_tasks: establish_switch_connection.yml
+
+  rescue:
+    - name: Remove GNS3 Project due to previous error
+      import_tasks: cleanup.yml

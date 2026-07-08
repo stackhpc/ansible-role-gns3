@@ -8,7 +8,7 @@ from ansible.module_utils.basic import AnsibleModule
 
 DOCUMENTATION = """
 ---
-module: gns3_project
+module: gns3_create_project
 short_description: Creates and opens a GNS3 project
 description:
     - "This module creates and opens a GNS3 project on the GNS3 server."
@@ -48,7 +48,7 @@ def run_module():
         module.exit_json(
             changed=True,
             project_name=project.name,
-            status=project.status()
+            status=project.status
         )
 
     except Exception as e:

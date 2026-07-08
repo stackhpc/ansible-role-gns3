@@ -13,10 +13,13 @@
     url: https://raw.githubusercontent.com/GNS3/gns3-server/master/scripts/remote-install.sh
     dest: "{{ gns3_work_dir }}/gns3-remote-install.sh"
     mode: "0755"
-  when: "'gns3server' not in ansible_facts.packages"
 
 - name: Install GNS3 Server
   ansible.builtin.shell: ./gns3-remote-install.sh --with-iou --with-i386-repository
   args:
     chdir: "{{ gns3_work_dir }}"
-  when: "'gns3server' not in ansible_facts.packages"
+
+- name: Remove GNS3 Install Script
+  ansible.builtin.file:
+    path: "{{ gns3_work_dir }}/gns3-remote-install.sh"
+    state: absent

@@ -1,0 +1,103 @@
+#!/usr/bin/expect -f
+
+# Wait indefinitely for the initial boot/login prompt.
+set timeout -1
+
+if {$argc != 3} {
+    puts "Requires 3 arguments: <telnet-port> <interface> <ip-address>"
+    exit 1
+}
+
+set port [lindex $argv 0]
+set iface [lindex $argv 1]
+set ipaddr [lindex $argv 2]
+
+spawn telnet localhost $port
+
+# Uncomment for debugging
+# exp_internal 1
+
+#
+# Wait for boot to finish
+#
+expect "OS10 login:"
+
+# Give OS10 a moment to finish initialising authentication
+sleep 2
+
+#
+# Login
+#
+send "admin\r"
+
+expect "Password:"
+
+sleep 1
+
+send "admin\r"
+
+#
+# Wait until we reach the CLI
+#
+expect {
+    "OS10#" {}
+    timeout {
+        puts "Failed to login as admin."
+        close
+        wait
+        exit 1
+    }
+}
+
+#
+# Configure switch
+#
+send "configure terminal\r"
+
+expect {
+    "OS10(config)#" {}
+    -re {Cancelling ZTD Process.*OS10\(config\)#} {}
+}
+
+send "interface $iface\r"
+expect -re {OS10\(conf-if.*\)#}
+
+send "no ip address dhcp\r"
+expect -re {OS10\(conf-if.*\)#}
+
+send "ip address $ipaddr\r"
+expect -re {OS10\(conf-if.*\)#}
+
+send "no shutdown\r"
+expect -re {OS10\(conf-if.*\)#}
+
+send "exit\r"
+expect "OS10(config)#"
+
+#
+# Return to privileged EXEC mode
+#
+send "end\r"
+expect "OS10#"
+
+#
+# Save configuration
+#
+send "write memory\r"
+expect "OS10#"
+
+#
+# Logout of the switch
+#
+send "exit\r"
+
+# Wait until we're back at the login prompt
+expect "OS10 login:"
+
+#
+# Close the telnet session cleanly
+#
+close
+wait
+
+exit 0
