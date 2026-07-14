@@ -8,18 +8,44 @@
     path: "{{ gns3_work_dir }}"
     state: directory
 
-- name: Download GNS3 Install Script
-  ansible.builtin.get_url:
-    url: https://raw.githubusercontent.com/GNS3/gns3-server/master/scripts/remote-install.sh
-    dest: "{{ gns3_work_dir }}/gns3-remote-install.sh"
-    mode: "0755"
+- name: Add GNS3 PPA
+  ansible.builtin.apt_repository:
+    repo: ppa:gns3/ppa
+    state: present
+    update_cache: true
 
-- name: Install GNS3 Server
-  ansible.builtin.shell: ./gns3-remote-install.sh --with-iou --with-i386-repository
+- name: Install GNS3 packages
+  ansible.builtin.apt:
+    name:
+      - gns3-server
+    state: present
+    update_cache: true
+
+- name: Add i386 architecture
+  ansible.builtin.shell: sudo dpkg --add-architecture i386
   args:
-    chdir: "{{ gns3_work_dir }}"
+    executable: /bin/bash
 
-- name: Remove GNS3 Install Script
-  ansible.builtin.file:
-    path: "{{ gns3_work_dir }}/gns3-remote-install.sh"
-    state: absent
+- name: Update package cache
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install GNS3 IOU
+  ansible.builtin.apt:
+    name:
+      - gns3-iou
+    state: present
+
+- name: Add current user to required groups
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups:
+      - ubridge
+      - libvirt
+      - kvm
+      - wireshark
+      - docker
+      
+- name: Launch GNS3 server (run gns3server)
+  ansible.builtin.command:
+    cmd: gns3server
