@@ -2,5 +2,5 @@
 - name: Create GNS3 Nodes
   create_nodes:
     project_name: "{{ gns3_project_name }}"
-    node_type: "{{ gns3_node_type }}"
+    node_type: "{{ gns3_switch_type }}"
     cloud_ports_mapping: "{{ gns3_cloud_ports_mapping }}"

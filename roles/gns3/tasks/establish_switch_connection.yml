@@ -1,5 +1,5 @@
 ---
-- name: Install expect and telnet package
+- name: Install Expect and Telnet packages
   ansible.builtin.apt:
     name:
       - expect
@@ -9,7 +9,7 @@
 - name: Get switch information
   gns3_node_info:
     project_name: "{{ gns3_project_name }}"
-    node_name: "{{ gns3_node_type }}"
+    node_name: "{{ gns3_switch_type }}"
   register: switch
 
 - name: Wait 10 minutes before configuring switch # would ideally change to polling

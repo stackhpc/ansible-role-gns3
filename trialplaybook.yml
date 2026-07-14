@@ -5,7 +5,7 @@
       vars:
         gns3_project_name: Trial_project
         switch_type: dellos10
-        gns3_node_type: "Dell OS10 N3248TE-10.5.6.13.327"
+        gns3_switch_type: "Dell OS10 N3248TE-10.5.6.13.327"
         gns3_cloud_ports_mapping: # can do a precheck for values and leave it undefined
         - interface: breth1
           name: breth1
