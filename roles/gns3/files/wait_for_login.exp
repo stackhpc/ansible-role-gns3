@@ -1,0 +1,27 @@
+#!/usr/bin/expect -f
+
+set timeout 10
+
+if {$argc != 1} {
+    exit 2
+}
+
+set port [lindex $argv 0]
+
+spawn telnet localhost $port
+
+expect {
+    "OS10 login:" {
+        close
+        wait
+        exit 0
+    }
+    timeout {
+        close
+        wait
+        exit 1
+    }
+    eof {
+        exit 1
+    }
+}

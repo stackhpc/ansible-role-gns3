@@ -12,9 +12,16 @@
     node_name: "{{ gns3_switch_type }}"
   register: switch
 
-- name: Wait 10 minutes before configuring switch # would ideally change to polling
-  ansible.builtin.pause:
-    minutes: 10
+- name: Wait until OS10 has finished booting
+  ansible.builtin.command:
+    argv:
+      - expect
+      - "{{ role_path }}/files/wait_for_login.exp"
+      - "{{ switch.console_port }}"
+  register: bootcheck
+  retries: 120
+  delay: 10
+  until: bootcheck.rc == 0
 
 - name: Wait for console
   ansible.builtin.wait_for:
@@ -25,7 +32,7 @@
   ansible.builtin.command:
     argv:
       - expect
-      - "{{ role_path }}/files/expect_script.exp"
+      - "{{ role_path }}/files/set_admin_connection.exp"
       - "{{ switch.console_port }}"
       - "{{ management_interface }}"
       - "{{ management_ip }}"

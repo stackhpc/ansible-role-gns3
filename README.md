@@ -13,14 +13,7 @@ You can set the ```gns3_project_name``` variable in the playbook to the desired 
 #### Switch types
 The role aims to be compatible with several switch types, but is currently only compatible with Dell OS10 switches.
 
-The desired compatibility list is:
-- Dell OS9
-- Dell OS10
-- Cumulus VX
-- Arista
-- Juniper
-
-To ensure the correct images are installed, you must set the ```switch_type``` variable. Below is an example of how to set it for the Dell OS10 switches.
+To ensure the correct images are installed, you must set the ```switch_type``` variable. Below is an example of how to set to be a Dell OS10 switch.
 
 ```yaml
 switch_type: dellos10
@@ -77,4 +70,3 @@ gns3_cloud_ports_mapping:
 - Increase switch compatability
 - Make switch version configurable ?
 - Change how port mappings are defined?
-- Change the hardcoded wait for the switch to finish booting to polling
