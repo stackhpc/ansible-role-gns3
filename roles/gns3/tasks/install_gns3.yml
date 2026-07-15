@@ -8,6 +8,14 @@
     path: "{{ gns3_work_dir }}"
     state: directory
 
+- name: Ensure key management packages are installed
+  ansible.builtin.apt:
+    name:
+      - gnupg
+      - dirmngr
+    state: present
+    update_cache: true
+
 - name: Add GNS3 PPA
   ansible.builtin.apt_repository:
     repo: ppa:gns3/ppa
@@ -22,9 +30,8 @@
     update_cache: true
 
 - name: Add i386 architecture
-  ansible.builtin.shell: sudo dpkg --add-architecture i386
-  args:
-    executable: /bin/bash
+  ansible.builtin.command:
+    cmd: dpkg --add-architecture i386
 
 - name: Update package cache
   ansible.builtin.apt:
@@ -36,16 +43,49 @@
       - gns3-iou
     state: present
 
+- name: Print ansible_user and ansible_ssh_user
+  ansible.builtin.debug:
+    msg: "ansible_user: {{ ansible_user | default(ansible_ssh_user) | default(ansible_facts.user_id) }}"
+
 - name: Add current user to required groups
   ansible.builtin.user:
-    name: "{{ ansible_user }}"
+    name: "{{ ansible_facts.user_id }}"
+    append: true
     groups:
       - ubridge
       - libvirt
       - kvm
-      - wireshark
-      - docker
-      
-- name: Launch GNS3 server (run gns3server)
+
+- name: Add gns3 systemd service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/gns3.service
+    content: |
+      [Unit]
+      Description=GNS3 Server
+      After=network.target
+
+      [Service]
+      User=ubuntu
+      Group=ubuntu
+      WorkingDirectory=/home/ubuntu
+      ExecStart=/usr/bin/gns3server
+
+      [Install]
+      WantedBy=multi-user.target
+
+
+- name: Enable and start gns3 service
+  ansible.builtin.systemd:
+    name: gns3
+    enabled: true
+    state: started
+
+- name: Get status of gns3 service
   ansible.builtin.command:
-    cmd: gns3server
+    cmd: systemctl status gns3
+  register: gns3_status
+  become: true
+
+- name: Display gns3 service status
+  ansible.builtin.debug:
+    msg: "{{ gns3_status.stdout }}"
