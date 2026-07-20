@@ -20,7 +20,7 @@
       - "{{ switch.console_port }}"
   register: bootcheck
   retries: 120
-  delay: 10
+  delay: 5
   until: bootcheck.rc == 0
 
 - name: Wait for console
@@ -36,3 +36,8 @@
       - "{{ switch.console_port }}"
       - "{{ management_interface }}"
       - "{{ management_ip }}"
+
+# - name: Verify ping to switch -> doesnt work, needs variable set
+#   ansible.netcommon.net_ping:
+#     dest: "{{ management_ip }}"
+#     count: 5

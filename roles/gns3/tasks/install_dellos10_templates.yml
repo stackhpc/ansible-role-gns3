@@ -1,14 +1,19 @@
 ---
 - name: Ensure QEMU image directory exists
   ansible.builtin.file:
-    path: /opt/gns3/images/QEMU
+    path: /home/ubuntu/GNS3/images/QEMU
     state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: '0755'
 
 
 - name: Download DellOS10 Virtualisation Bundle
   ansible.builtin.get_url:
     url: https://dl.dell.com/downloads/WK6PP_Dell-SmartFabric-OS10-Version,-10.5.6.13,-GNS3-Bundle.zip
     dest: "{{ gns3_work_dir }}/Dell-SmartFabric-OS10.5.6.13.zip"
+    mode: '0644'
+
 
 - name: Create DellOS10 extraction directory
   ansible.builtin.file:
@@ -16,10 +21,12 @@
     state: directory
     mode: '0755'
 
-- name: Download unzip package
+
+- name: Install unzip package
   ansible.builtin.package:
     name: unzip
     state: present
+
 
 - name: Unzip DellOS10 Virtualisation Bundle
   ansible.builtin.unarchive:
@@ -28,21 +35,23 @@
     remote_src: true
 
 
-- name: Move .vmdk files to /opt/gns3/images/QEMU/ using ansible.builtin.find and ansible.builtin.copy
+- name: Find Dell OS10 VMDK files
   ansible.builtin.find:
     paths: "{{ gns3_work_dir }}/DellOS10"
     patterns: "*.vmdk"
     file_type: file
   register: vmdk_files
 
-- name: Copy .vmdk files to /opt/gns3/images/QEMU/
+- name: Copy Dell OS10 VMDK files to GNS3 image directory
   ansible.builtin.copy:
     src: "{{ item.path }}"
-    dest: "/opt/gns3/images/QEMU/"
+    dest: "/home/ubuntu/GNS3/images/QEMU/{{ item.path | basename }}"
     remote_src: true
-    force: no
+    owner: ubuntu
+    group: ubuntu
+    mode: '0644'
+    force: false
   loop: "{{ vmdk_files.files }}"
-
 
 - name: Find Dell OS10 template files
   ansible.builtin.find:

@@ -15,32 +15,153 @@ set ipaddr [lindex $argv 2]
 spawn telnet localhost $port
 
 # Uncomment for debugging
-# exp_internal 1
+exp_internal 1
 
 #
-# Wait for boot to finish
+# Send enter once to prompt
 #
-expect "OS10 login:"
 
-# Give OS10 a moment to finish initialising authentication
-sleep 2
+sleep 3
 
-#
-# Login
-#
+send "\r"
+send "\r"
+send "\r"
+
+expect -re {OS10 login:}
 send "admin\r"
 
-expect "Password:"
-
-sleep 1
-
+expect -re {Password:}
 send "admin\r"
+
+#
+# Try logging in as admin first
+#
+expect {
+    -re {OS10#} {
+        puts "Logged in as admin."
+    }
+
+    -re {Login incorrect} {
+        puts "Admin login failed. Resetting password via linuxadmin."
+
+        expect -re {OS10 login:}
+        send "linuxadmin\r"
+
+        expect -re {Password:}
+        send "linuxadmin\r"
+
+        expect -re {linuxadmin@OS10:~\$ *}
+
+        send "sudo passwd admin\r"
+
+expect {
+    -re {\[sudo\] password for linuxadmin:} {
+        send "linuxadmin\r"
+
+        expect {
+            -re {New password:} {
+                send "admin\r"
+
+                expect -re {Retype new password:}
+                send "admin\r"
+
+                expect -re {linuxadmin@OS10:~\$ *}
+            }
+
+            -re {passwd: user 'admin' does not exist} {
+                puts "admin user does not exist yet. Waiting 3 minutes before retrying..."
+                sleep 180
+
+                send "sudo passwd admin\r"
+
+                expect -re {\[sudo\] password for linuxadmin:}
+                send "linuxadmin\r"
+
+                expect -re {New password:}
+                send "admin\r"
+
+                expect -re {Retype new password:}
+                send "admin\r"
+
+                expect -re {linuxadmin@OS10:~\$ *}
+            }
+
+            timeout {
+                puts "Timed out waiting for passwd."
+                exit 1
+            }
+        }
+    }
+
+    -re {passwd: user 'admin' does not exist} {
+        puts "admin user does not exist yet. Waiting 3 minutes before retrying..."
+        sleep 180
+
+        send "sudo passwd admin\r"
+
+        expect -re {\[sudo\] password for linuxadmin:}
+        send "linuxadmin\r"
+
+        expect -re {New password:}
+        send "admin\r"
+
+        expect -re {Retype new password:}
+        send "admin\r"
+
+        expect -re {linuxadmin@OS10:~\$ *}
+    }
+
+    timeout {
+        puts "Timed out starting passwd."
+        exit 1
+    }
+}
+
+        expect -re {linuxadmin@OS10:~\$ *}
+
+        send "exit\r"
+
+        send "\r"
+        send "\r"
+        send "\r"
+
+        expect -re {OS10 login:}
+        send "admin\r"
+
+        expect -re {Password:}
+        send "admin\r"
+
+        expect {
+            -re {OS10#} {}
+
+            timeout {
+                puts "Failed to login as admin after password reset."
+                close
+                wait
+                exit 1
+            }
+        }
+    }
+
+    timeout {
+        puts "Timed out waiting for login result."
+        close
+        wait
+        exit 1
+    }
+}
 
 #
 # Wait until we reach the CLI
 #
+
+send "\r"
+send "\r"
+send "\r"
+
 expect {
-    "OS10#" {}
+    -re {OS10#} {}
+
     timeout {
         puts "Failed to login as admin."
         close
@@ -55,7 +176,7 @@ expect {
 send "configure terminal\r"
 
 expect {
-    "OS10(config)#" {}
+    -re {OS10\(config\)#} {}
     -re {Cancelling ZTD Process.*OS10\(config\)#} {}
 }
 
@@ -72,19 +193,19 @@ send "no shutdown\r"
 expect -re {OS10\(conf-if.*\)#}
 
 send "exit\r"
-expect "OS10(config)#"
+expect -re {OS10\(config\)#}
 
 #
 # Return to privileged EXEC mode
 #
 send "end\r"
-expect "OS10#"
+expect -re {OS10#}
 
 #
 # Save configuration
 #
 send "write memory\r"
-expect "OS10#"
+expect -re {OS10#}
 
 #
 # Logout of the switch
@@ -92,7 +213,7 @@ expect "OS10#"
 send "exit\r"
 
 # Wait until we're back at the login prompt
-expect "OS10 login:"
+expect -re {OS10 login:}
 
 #
 # Close the telnet session cleanly

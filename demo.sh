@@ -20,18 +20,18 @@ source ~/kayobe-venv/bin/activate
 
 ansible-playbook -i inventory.ini trialplaybook.yml -vvv
 
-# # copy switch1 file to kayobe config
-# cp switch1 ~/kayobe/config/src/kayobe-config/etc/kayobe/inventory/host_vars/switch1
+# copy switch1 file to kayobe config
+cp switch1 ~/kayobe/config/src/kayobe-config/etc/kayobe/inventory/host_vars/switch1
 
-# groups_file=~/kayobe/config/src/kayobe-config/etc/kayobe/inventory/groups
-# host="switch1"
+groups_file=~/kayobe/config/src/kayobe-config/etc/kayobe/inventory/groups
+host="switch1"
 
-# if ! awk '/^\[mgmt-switches\]/{flag=1;next}/^\[/{flag=0} flag && $0 == "'"$host"'"' "$groups_file" | grep -q "$host"; then
-#     sed -i "/^\[mgmt-switches\]$/a ${host}" "$groups_file"
-# fi
+if ! awk '/^\[mgmt-switches\]/{flag=1;next}/^\[/{flag=0} flag && $0 == "'"$host"'"' "$groups_file" | grep -q "$host"; then
+    sed -i "/^\[mgmt-switches\]$/a ${host}" "$groups_file"
+fi
 
-# source ~/kayobe-venv/bin/activate
-# source ~/kayobe/config/src/kayobe-config/kayobe-env
+source ~/kayobe-venv/bin/activate
+source ~/kayobe/config/src/kayobe-config/kayobe-env
 
-# kayobe control host bootstrap
-# kayobe physical network configure --group mgmt-switches
+kayobe control host bootstrap
+kayobe physical network configure --group mgmt-switches

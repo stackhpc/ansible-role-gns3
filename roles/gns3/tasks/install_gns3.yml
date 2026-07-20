@@ -43,18 +43,31 @@
       - gns3-iou
     state: present
 
-- name: Print ansible_user and ansible_ssh_user
-  ansible.builtin.debug:
-    msg: "ansible_user: {{ ansible_user | default(ansible_ssh_user) | default(ansible_facts.user_id) }}"
+# - name: Install KVM package
+#   ansible.builtin.apt:
+#     name:
+#       - qemu-kvm
 
+- name: Print ansible facts
+  ansible.builtin.debug:
+    var: ansible_facts
+
+- name: Verify ubuntu user exists
+  ansible.builtin.user:
+    name: ubuntu
+    state: present
+
+  # can i change it all to root?
 - name: Add current user to required groups
   ansible.builtin.user:
-    name: "{{ ansible_facts.user_id }}"
+    name: "ubuntu"
     append: true
     groups:
       - ubridge
       - libvirt
       - kvm
+
+      # need to do usermod for ubuntu
 
 - name: Add gns3 systemd service
   ansible.builtin.copy:
@@ -74,11 +87,12 @@
       WantedBy=multi-user.target
 
 
-- name: Enable and start gns3 service
-  ansible.builtin.systemd:
+- name: Enable and restart gns3 service
+  ansible.builtin.systemd_service:
     name: gns3
     enabled: true
-    state: started
+    state: restarted
+    daemon_reload: true
 
 - name: Get status of gns3 service
   ansible.builtin.command:
