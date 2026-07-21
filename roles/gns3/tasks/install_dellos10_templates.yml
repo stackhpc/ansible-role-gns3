@@ -1,65 +1,87 @@
 ---
-- name: Ensure QEMU image directory exists
-  ansible.builtin.file:
-    path: /home/ubuntu/GNS3/images/QEMU
-    state: directory
-    owner: ubuntu
-    group: ubuntu
-    mode: '0755'
+- name: Check if required template is already uploaded
+  gns3_template_summary:
+    project_name: "{{ gns3_project_name }}"
+    gns3_switch_model: "{{ gns3_switch_model }}"
+  register: template_status
+- name: Print template status
+  ansible.builtin.debug:
+    msg: "{{ template_status }}"
+
+- name: Install and upload DellOS10 templates if not already present
+  when: not template_status.exists
+  block:
+
+    - name: Ensure QEMU image directory exists
+      ansible.builtin.file:
+        path: /home/ubuntu/GNS3/images/QEMU
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
 
 
-- name: Download DellOS10 Virtualisation Bundle
-  ansible.builtin.get_url:
-    url: https://dl.dell.com/downloads/WK6PP_Dell-SmartFabric-OS10-Version,-10.5.6.13,-GNS3-Bundle.zip
-    dest: "{{ gns3_work_dir }}/Dell-SmartFabric-OS10.5.6.13.zip"
-    mode: '0644'
+    - name: Download DellOS10 Virtualisation Bundle
+      ansible.builtin.get_url:
+        url: https://dl.dell.com/downloads/WK6PP_Dell-SmartFabric-OS10-Version,-10.5.6.13,-GNS3-Bundle.zip
+        dest: "{{ gns3_work_dir }}/Dell-SmartFabric-OS10.5.6.13.zip"
+        mode: '0644'
 
 
-- name: Create DellOS10 extraction directory
-  ansible.builtin.file:
-    path: "{{ gns3_work_dir }}/DellOS10"
-    state: directory
-    mode: '0755'
+    - name: Create DellOS10 extraction directory
+      ansible.builtin.file:
+        path: "{{ gns3_work_dir }}/DellOS10"
+        state: directory
+        mode: '0755'
 
 
-- name: Install unzip package
-  ansible.builtin.package:
-    name: unzip
-    state: present
+    - name: Install unzip package
+      ansible.builtin.package:
+        name: unzip
+        state: present
 
 
-- name: Unzip DellOS10 Virtualisation Bundle
-  ansible.builtin.unarchive:
-    src: "{{ gns3_work_dir }}/Dell-SmartFabric-OS10.5.6.13.zip"
-    dest: "{{ gns3_work_dir }}/DellOS10"
-    remote_src: true
+    - name: Unzip DellOS10 Virtualisation Bundle
+      ansible.builtin.unarchive:
+        src: "{{ gns3_work_dir }}/Dell-SmartFabric-OS10.5.6.13.zip"
+        dest: "{{ gns3_work_dir }}/DellOS10"
+        remote_src: true
 
 
-- name: Find Dell OS10 VMDK files
-  ansible.builtin.find:
-    paths: "{{ gns3_work_dir }}/DellOS10"
-    patterns: "*.vmdk"
-    file_type: file
-  register: vmdk_files
+    - name: Find Dell OS10 VMDK files
+      ansible.builtin.find:
+        paths: "{{ gns3_work_dir }}/DellOS10"
+        patterns: "*.vmdk"
+        file_type: file
+      register: vmdk_files
 
-- name: Copy Dell OS10 VMDK files to GNS3 image directory
-  ansible.builtin.copy:
-    src: "{{ item.path }}"
-    dest: "/home/ubuntu/GNS3/images/QEMU/{{ item.path | basename }}"
-    remote_src: true
-    owner: ubuntu
-    group: ubuntu
-    mode: '0644'
-    force: false
-  loop: "{{ vmdk_files.files }}"
+    - name: Copy Dell OS10 VMDK files to GNS3 image directory
+      ansible.builtin.copy:
+        src: "{{ item.path }}"
+        dest: "/home/ubuntu/GNS3/images/QEMU/{{ item.path | basename }}"
+        remote_src: true
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+        force: false
+      loop: "{{ vmdk_files.files }}"
 
-- name: Find Dell OS10 template files
-  ansible.builtin.find:
-    paths: "{{ gns3_work_dir }}/DellOS10"
-    patterns: "*.gns3a"
-    file_type: file
-  register: dellos10_templates
+    - name: Find Dell OS10 template files
+      ansible.builtin.find:
+        paths: "{{ gns3_work_dir }}/DellOS10"
+        patterns: "*.gns3a"
+        file_type: file
+      register: dellos10_templates
 
-- name: Set template upload list
-  ansible.builtin.set_fact:
-    gns3_templates: "{{ dellos10_templates.files | map(attribute='path') | list }}"
+    - name: Set template upload list
+      ansible.builtin.set_fact:
+        gns3_templates: "{{ dellos10_templates.files | map(attribute='path') | list }}"
+
+    - name: Upload Dell OS10 templates to GNS3 server
+      gns3_template_upload:
+        templates: "{{ gns3_templates }}"
+
+    - name: remove work directory after upload
+      ansible.builtin.file:
+        path: "{{ gns3_work_dir }}"
+        state: absent

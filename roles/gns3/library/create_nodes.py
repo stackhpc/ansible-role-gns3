@@ -11,12 +11,11 @@ DOCUMENTATION = """
 ---
 module: create_nodes
 
-short_description: Creates nodes in a GNS3 project
+short_description: Creates a node in a GNS3 project
 
 description:
-    - Creates nodes in a GNS3 project from existing templates.
-    - Creates a Cloud node if required.
-    - Applies Cloud port mappings during Cloud node creation.
+    - Creates a switch node in a GNS3 project based on a specified template or
+    creates a Cloud node.
 
 options:
     project_name:
@@ -27,7 +26,7 @@ options:
 
     node_type:
         description:
-            - GNS3 template name to use for the node.
+            - GNS3 template name or Cloud.
         required: true
         type: str
 
@@ -38,9 +37,6 @@ options:
         type: list
 """
 
-
-EXAMPLES = """
-"""
 
 def run_module():
 
@@ -63,11 +59,9 @@ def run_module():
         supports_check_mode=True,
     )
 
-
     project_name = module.params["project_name"]
     node_type = module.params["node_type"]
     cloud_ports_mapping = module.params["cloud_ports_mapping"]
-
 
     try:
 
@@ -79,123 +73,98 @@ def run_module():
         project.get()
 
 
-        changed = False
-        created_nodes = []
+        created_node = None
 
 
-        # Find existing nodes in project
-        existing_node_names = {
-            node.name
-            for node in project.nodes
-        }
+        #
+        # Create Cloud node
+        #
+        if node_type.lower() == "cloud":
+
+            if module.check_mode:
+                module.exit_json(
+                    changed=True,
+                    created_node="Cloud"
+                )
 
 
-       # Find matching template for requested node type
-        matched_template_name = None
-
-        for template in gns3_server.get_templates():
-
-            template_name = (
-                template["name"]
-                if isinstance(template, dict)
-                else template.name
+            response = gns3_server.http_call(
+                "post",
+                f"{gns3_server.base_url}/projects/{project.project_id}/nodes",
+                json_data={
+                    "name": "Cloud",
+                    "node_type": "cloud",
+                    "compute_id": "local",
+                    "properties": {
+                        "interfaces": []
+                    },
+                    "x": 100,
+                    "y": 100,
+                },
             )
 
-            if template_name == node_type:
-                matched_template_name = template_name
-                break
+            created_node = "Cloud"
+
+            cloud_node_id = response.json()["node_id"]
 
 
-        if not matched_template_name:
-            module.fail_json(
-                msg=f"No GNS3 template found matching '{node_type}'"
-            )
+            if cloud_ports_mapping:
+
+                gns3_server.http_call(
+                    "put",
+                    f"{gns3_server.base_url}/projects/{project.project_id}/nodes/{cloud_node_id}",
+                    json_data={
+                        "properties": {
+                            "ports_mapping": cloud_ports_mapping
+                        }
+                    },
+                )
 
 
-       # Create relevant node if it doesn't already exist in the project
-        if node_type not in existing_node_names:
+        #
+        # Create template based node
+        #
+        else:
 
-            changed = True
+            template = None
+
+            for item in gns3_server.get_templates():
+
+                template_name = (
+                    item["name"]
+                    if isinstance(item, dict)
+                    else item.name
+                )
+
+                if template_name == node_type:
+                    template = template_name
+                    break
+
+
+            if not template:
+                module.fail_json(
+                    msg=f"No GNS3 template found matching '{node_type}'"
+                )
+
 
             if not module.check_mode:
 
                 node = Node(
                     project_id=project.project_id,
                     name=node_type,
-                    template=matched_template_name,
+                    template=template,
                     connector=gns3_server,
                 )
 
                 node.create()
 
-            created_nodes.append(node_type)
-
-
-       # Create Cloud node if it doesn't already exist in the project
-        project.get()
-
-        cloud_node = next(
-            (
-                node
-                for node in project.nodes
-                if node.name == "Cloud"
-            ),
-            None
-        )
-
-        if cloud_node is None:
-
-            changed = True
-
-            if not module.check_mode:
-
-                response = gns3_server.http_call(
-                    "post",
-                    f"{gns3_server.base_url}/projects/{project.project_id}/nodes",
-                    json_data={
-                        "name": "Cloud",
-                        "node_type": "cloud",
-                        "compute_id": "local",
-                        "properties": {
-                            "interfaces": []
-                        },
-                        "x": 100,
-                        "y": 100,
-                    },
-                )
-
-                cloud_node_id = response.json()["node_id"]
-
-                created_nodes.append("Cloud")
-
-
-        # Update Cloud node with port mappings if provided
-        if cloud_ports_mapping:
-
-            gns3_server.http_call(
-                "put",
-                f"{gns3_server.base_url}/projects/{project.project_id}/nodes/{cloud_node_id}",
-                json_data={
-                    "properties": {
-                        "ports_mapping": cloud_ports_mapping
-                    }
-                },
-            )
-
-        # Start nodes
-        if not module.check_mode:
-            project.get()
-            for node in project.nodes:
-
-                if node.status != "started":
-                    node.start()
-                    changed = True
+            created_node = node_type
 
 
         module.exit_json(
-            changed=changed,
+            changed=True,
             project_name=project_name,
-            created_nodes=created_nodes,
+            created_node=created_node,
         )
 
 

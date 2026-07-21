@@ -3,96 +3,93 @@
   ansible.builtin.package_facts:
     manager: auto
 
-- name: Ensure GNS3 work directory exists
-  ansible.builtin.file:
-    path: "{{ gns3_work_dir }}"
-    state: directory
+- name: Gather service facts
+  ansible.builtin.service_facts:
 
-- name: Ensure key management packages are installed
-  ansible.builtin.apt:
-    name:
-      - gnupg
-      - dirmngr
-    state: present
-    update_cache: true
+# only run the below code when gns3.service is not in ansible_facts.services
 
-- name: Add GNS3 PPA
-  ansible.builtin.apt_repository:
-    repo: ppa:gns3/ppa
-    state: present
-    update_cache: true
+- name: Install GNS3 and ensure it is running
+  when: "'gns3.service' not in ansible_facts.services"
+  block:
 
-- name: Install GNS3 packages
-  ansible.builtin.apt:
-    name:
-      - gns3-server
-    state: present
-    update_cache: true
+    - name: Ensure GNS3 work directory exists
+      ansible.builtin.file:
+        path: "{{ gns3_work_dir }}"
+        state: directory
 
-- name: Add i386 architecture
-  ansible.builtin.command:
-    cmd: dpkg --add-architecture i386
+    - name: Ensure key management packages are installed
+      ansible.builtin.apt:
+        name:
+          - gnupg
+          - dirmngr
+        state: present
+        update_cache: true
 
-- name: Update package cache
-  ansible.builtin.apt:
-    update_cache: true
+    - name: Add GNS3 PPA
+      ansible.builtin.apt_repository:
+        repo: ppa:gns3/ppa
+        state: present
+        update_cache: true
 
-- name: Install GNS3 IOU
-  ansible.builtin.apt:
-    name:
-      - gns3-iou
-    state: present
+    - name: Install GNS3 packages
+      ansible.builtin.apt:
+        name:
+          - gns3-server
+        state: present
+        update_cache: true
 
-# - name: Install KVM package
-#   ansible.builtin.apt:
-#     name:
-#       - qemu-kvm
+    - name: Add i386 architecture
+      ansible.builtin.command:
+        cmd: dpkg --add-architecture i386
 
-- name: Print ansible facts
-  ansible.builtin.debug:
-    var: ansible_facts
+    - name: Update package cache
+      ansible.builtin.apt:
+        update_cache: true
 
-- name: Verify ubuntu user exists
-  ansible.builtin.user:
-    name: ubuntu
-    state: present
+    - name: Install GNS3 IOU
+      ansible.builtin.apt:
+        name:
+          - gns3-iou
+        state: present
 
-  # can i change it all to root?
-- name: Add current user to required groups
-  ansible.builtin.user:
-    name: "ubuntu"
-    append: true
-    groups:
-      - ubridge
-      - libvirt
-      - kvm
+    - name: Verify ubuntu user exists
+      ansible.builtin.user:
+        name: ubuntu
+        state: present
 
-      # need to do usermod for ubuntu
+      # Should this be root?
+    - name: Add current user to required groups
+      ansible.builtin.user:
+        name: "ubuntu"
+        append: true
+        groups:
+          - ubridge
+          - libvirt
+          - kvm
 
-- name: Add gns3 systemd service
-  ansible.builtin.copy:
-    dest: /etc/systemd/system/gns3.service
-    content: |
-      [Unit]
-      Description=GNS3 Server
-      After=network.target
+    - name: Add gns3 systemd service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/gns3.service
+        content: |
+          [Unit]
+          Description=GNS3 Server
+          After=network.target
 
-      [Service]
-      User=ubuntu
-      Group=ubuntu
-      WorkingDirectory=/home/ubuntu
-      ExecStart=/usr/bin/gns3server
+          [Service]
+          User=ubuntu
+          Group=ubuntu
+          WorkingDirectory=/home/ubuntu
+          ExecStart=/usr/bin/gns3server
 
-      [Install]
-      WantedBy=multi-user.target
+          [Install]
+          WantedBy=multi-user.target
 
-
-- name: Enable and restart gns3 service
-  ansible.builtin.systemd_service:
-    name: gns3
-    enabled: true
-    state: restarted
-    daemon_reload: true
+    - name: Enable and restart gns3 service
+      ansible.builtin.systemd_service:
+        name: gns3
+        enabled: true
+        state: restarted
+        daemon_reload: true
 
 - name: Get status of gns3 service
   ansible.builtin.command:

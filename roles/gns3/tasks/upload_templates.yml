@@ -2,9 +2,3 @@
 - name: Upload GNS3 Templates
   gns3_template_upload:
     templates: "{{ gns3_templates }}"
-
-
-- name: remove work directory after upload
-  ansible.builtin.file:
-    path: "{{ gns3_work_dir }}"
-    state: absent

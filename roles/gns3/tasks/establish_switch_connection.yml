@@ -9,8 +9,12 @@
 - name: Get switch information
   gns3_node_info:
     project_name: "{{ gns3_project_name }}"
-    node_name: "{{ gns3_switch_type }}"
+    node_name: "{{ gns3_switch_model }}"
   register: switch
+
+- name: Print switch information
+  ansible.builtin.debug:
+    msg: "{{ switch }}"
 
 - name: Wait until OS10 has finished booting
   ansible.builtin.command:
@@ -23,10 +27,9 @@
   delay: 5
   until: bootcheck.rc == 0
 
-- name: Wait for console
-  ansible.builtin.wait_for:
-    host: localhost
-    port: "{{ switch.console_port }}"
+- name: Give OS10 time to finish booting
+  ansible.builtin.pause:
+    seconds: "{{ gns3_switch_boot_delay | default(180) }}"
 
 - name: Configure switch
   ansible.builtin.command:

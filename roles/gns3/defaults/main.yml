@@ -3,7 +3,7 @@ gns3_project_name: "gns3_project"
 gns3_work_dir: "{{ ansible_facts['env']['HOME'] }}/gns3-work"
 
 gns3_links:
-  - source_node: "{{ gns3_switch_type }}"
+  - source_node: "{{ gns3_switch_model }}"
     source_adapter: 0
     source_port: 0
     target_node: Cloud

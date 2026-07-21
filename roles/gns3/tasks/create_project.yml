@@ -6,7 +6,17 @@
       - pydantic==1.9.2
     state: present
 
+- name: Check if GNS3 Project exists already
+  gns3_project_status:
+    project_name: "{{ gns3_project_name }}"
+  register: gns3_project_status
+  failed_when: false
 
-- name: Create GNS3 Project
+- name: Print GNS3 status
+  ansible.builtin.debug:
+    msg: "{{ gns3_project_status }}"
+
+- name: Create GNS3 project
   gns3_create_project:
     project_name: "{{ gns3_project_name }}"
+  when: not gns3_project_status.exists

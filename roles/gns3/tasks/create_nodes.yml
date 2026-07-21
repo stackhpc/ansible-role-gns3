@@ -1,7 +1,36 @@
+---
+- name: Check if required nodes exist already
+  gns3_node_status:
+    project_name: "{{ gns3_project_name }}"
+    node_type: "{{ gns3_switch_model }}"
+  register: node_status
 
-- name: Create GNS3 Nodes
+- name: Print node status
+  ansible.builtin.debug:
+    msg: "{{ node_status }}"
+
+- name: Get node summary
+  debug_node:
+    project_name: "{{ gns3_project_name }}"
+  register: node_summary
+
+- name: Print node summary
+  ansible.builtin.debug:
+    msg: "{{ node_summary }}"
+
+- name: Create Switch Node
   create_nodes:
     project_name: "{{ gns3_project_name }}"
-    node_type: "{{ gns3_switch_type }}"
+    node_type: "{{ gns3_switch_model }}"
+  when: not node_status.switch_node_present
+
+- name: Create Cloud Node
+  create_nodes:
+    project_name: "{{ gns3_project_name }}"
+    node_type: "Cloud"
     cloud_ports_mapping: "{{ gns3_cloud_ports_mapping }}"
-  become: true
+  when: not node_status.cloud_node_present
+
+- name: Start nodes
+  gns3_start_nodes:
+    project_name: "{{ gns3_project_name }}"

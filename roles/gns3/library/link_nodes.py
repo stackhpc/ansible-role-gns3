@@ -5,6 +5,11 @@ from ansible.module_utils.basic import AnsibleModule
 
 from gns3fy import Project, Link
 from ansible.module_utils.gns3_client import gns3_server
+from ansible.module_utils.gns3_links import (
+    link_key,
+    project_link_keys,
+    resolve_node,
+)
 
 
 DOCUMENTATION = """
@@ -29,117 +34,6 @@ options:
         required: false
         type: list
 """
-
-
-def _link_key(
-    source_node_id,
-    source_adapter,
-    source_port,
-    target_node_id,
-    target_adapter,
-    target_port,
-):
-    return tuple(
-        sorted(
-            [
-                (
-                    source_node_id,
-                    source_adapter,
-                    source_port,
-                ),
-                (
-                    target_node_id,
-                    target_adapter,
-                    target_port,
-                ),
-            ]
-        )
-    )
-
-
-def _project_link_keys(project):
-
-    keys = set()
-
-    for existing_link in getattr(project, "links", []) or []:
-
-        nodes = (
-            existing_link.get("nodes", [])
-            if isinstance(existing_link, dict)
-            else getattr(existing_link, "nodes", [])
-        )
-
-        if len(nodes) != 2:
-            continue
-
-        first, second = nodes
-
-        first_node_id = (
-            first.get("node_id")
-            if isinstance(first, dict)
-            else getattr(first, "node_id", None)
-        )
-
-        first_adapter = (
-            first.get("adapter_number", 0)
-            if isinstance(first, dict)
-            else getattr(first, "adapter_number", 0)
-        )
-
-        first_port = (
-            first.get("port_number", 0)
-            if isinstance(first, dict)
-            else getattr(first, "port_number", 0)
-        )
-
-
-        second_node_id = (
-            second.get("node_id")
-            if isinstance(second, dict)
-            else getattr(second, "node_id", None)
-        )
-
-        second_adapter = (
-            second.get("adapter_number", 0)
-            if isinstance(second, dict)
-            else getattr(second, "adapter_number", 0)
-        )
-
-        second_port = (
-            second.get("port_number", 0)
-            if isinstance(second, dict)
-            else getattr(second, "port_number", 0)
-        )
-
-
-        keys.add(
-            _link_key(
-                first_node_id,
-                first_adapter,
-                first_port,
-                second_node_id,
-                second_adapter,
-                second_port,
-            )
-        )
-
-    return keys
-
-
-def _resolve_node(node_by_name, node_name):
-
-    node = node_by_name.get(node_name)
-
-    if node is not None:
-        return node
-
-    compact_name = node_name.replace(" ", "")
-
-    if compact_name != node_name:
-        return node_by_name.get(compact_name)
-
-    return None
-
 
 
 def run_module():
@@ -174,7 +68,7 @@ def run_module():
         project.get()
 
 
-        existing_link_keys = _project_link_keys(project)
+        existing_link_keys = project_link_keys(project)
 
         created_links = []
 
@@ -196,8 +90,8 @@ def run_module():
                 target_name = link_definition["target_node"]
 
 
-                source_node = _resolve_node(node_by_name, source_name)
-                target_node = _resolve_node(node_by_name, target_name)
+                source_node = resolve_node(node_by_name, source_name)
+                target_node = resolve_node(node_by_name, target_name)
 
 
                 if source_node is None or target_node is None:
@@ -233,7 +127,7 @@ def run_module():
                 )
 
 
-                link_key = _link_key(
+                desired_link_key = link_key(
                     source_node.node_id,
                     source_adapter,
                     source_port,
@@ -243,7 +137,7 @@ def run_module():
                 )
 
 
-                if link_key in existing_link_keys:
+                if desired_link_key in existing_link_keys:
                     continue
 
 

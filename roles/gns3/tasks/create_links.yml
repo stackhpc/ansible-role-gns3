@@ -1,5 +1,16 @@
 ---
+- name: Check if links already exist
+  gns3_link_status:
+    project_name: "{{ gns3_project_name }}"
+    links: "{{ gns3_links }}"
+  register: link_status
+
+- name: Print link status
+  ansible.builtin.debug:
+    msg: "{{ link_status }}"
+
 - name: Create GNS3 Links
   link_nodes:
     project_name: "{{ gns3_project_name }}"
     links: "{{ gns3_links }}"
+  when: not link_status.exists

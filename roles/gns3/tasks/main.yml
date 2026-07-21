@@ -12,12 +12,9 @@
     - name: Create GNS3 Project
       import_tasks: create_project.yml
 
-    - name: Install GNS3 DellOS10 Templates
+    - name: Install and upload GNS3 DellOS10 Templates
       import_tasks: install_dellos10_templates.yml
       when: switch_type == "dellos10"
-
-    - name: Upload GNS3 Templates
-      import_tasks: upload_templates.yml
 
     - name: Create GNS3 Nodes
       import_tasks: create_nodes.yml

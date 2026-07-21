@@ -21,13 +21,13 @@ switch_type: dellos10
 
 This will determine which templates are uploaded to GNS3 and which commands are run to establish an admin connection point.
 
-#### GNS3 Node Type
+#### GNS3 Switch Node Model
 
 On top of the switch manufacturer, it is important to choose the switch model. Right now, the Dell OS10 switches are set to v10.5.6.13, applicable models can be found online.
 
 Here is an example of setting it to be a Dell OS10 N3248TE-10.5.6.13.327 switch:
 ```yaml
-gns3_switch_type: "Dell OS10 N3248TE-10.5.6.13.327"
+gns3_switch_model: "Dell OS10 N3248TE-10.5.6.13.327"
 ```
 
 #### Management
