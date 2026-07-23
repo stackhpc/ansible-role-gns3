@@ -20,3 +20,7 @@
   gns3_create_project:
     project_name: "{{ gns3_project_name }}"
   when: not gns3_project_status.exists
+
+- name: Open GNS3 project
+  gns3_start_project:
+    project_name: "{{ gns3_project_name }}"
