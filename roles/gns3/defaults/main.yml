@@ -2,11 +2,25 @@
 gns3_project_name: "gns3_project"
 gns3_work_dir: "{{ ansible_facts['env']['HOME'] }}/gns3-work"
 
+gns3_cloud_node_quantity: 3
+
 gns3_links:
   - source_node: "{{ gns3_switch_model }}"
     source_adapter: 0
-    source_port: 0
-    target_node: Cloud
+    source_port: 0 #mgmt 1/1/1
+    target_node: Cloud1
+    target_adapter: 0
+    target_port: 0
+  - source_node: "{{ gns3_switch_model }}"
+    source_adapter: 1
+    source_port: 0 #eth 1/1/1
+    target_node: Cloud2
+    target_adapter: 0
+    target_port: 0
+  - source_node: "{{ gns3_switch_model }}"
+    source_adapter: 2
+    source_port: 0 #eth 1/1/2
+    target_node: Cloud3
     target_adapter: 0
     target_port: 0
 

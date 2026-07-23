@@ -9,8 +9,8 @@ if {$argc != 3} {
 }
 
 set port [lindex $argv 0]
-set iface [lindex $argv 1]
-set ipaddr [lindex $argv 2]
+set mgmt_iface [lindex $argv 1]
+set mgmt_ipaddr [lindex $argv 2]
 
 spawn telnet localhost $port
 
@@ -180,13 +180,13 @@ expect {
     -re {Cancelling ZTD Process.*OS10\(config\)#} {}
 }
 
-send "interface $iface\r"
+send "interface $mgmt_iface\r"
 expect -re {OS10\(conf-if.*\)#}
 
 send "no ip address dhcp\r"
 expect -re {OS10\(conf-if.*\)#}
 
-send "ip address $ipaddr\r"
+send "ip address $mgmt_ipaddr\r"
 expect -re {OS10\(conf-if.*\)#}
 
 send "no shutdown\r"
@@ -194,6 +194,8 @@ expect -re {OS10\(conf-if.*\)#}
 
 send "exit\r"
 expect -re {OS10\(config\)#}
+
+send "write memory\r"
 
 #
 # Return to privileged EXEC mode

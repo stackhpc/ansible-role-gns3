@@ -64,7 +64,6 @@ def run_module():
                 ),
                 None,
             )
-
         if node is None:
             node = next(
                 (
@@ -80,7 +79,17 @@ def run_module():
                 msg=f"Node '{node_name}' not found."
             )
 
-        node.get()
+
+
+
+        mgmt_port = next(
+            port for port in node.ports
+            if port.get("short_name") == "mgmt 1/1/1"
+        )
+
+        mac_address = mgmt_port["mac_address"]
+
+
 
         module.exit_json(
             changed=False,
@@ -88,6 +97,7 @@ def run_module():
             node_id=node.node_id,
             console_port=node.console,
             console_host=node.console_host,
+            mac_address=mac_address,
             status=node.status,
         )
 

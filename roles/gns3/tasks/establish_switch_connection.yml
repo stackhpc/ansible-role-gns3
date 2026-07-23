@@ -16,6 +16,28 @@
   ansible.builtin.debug:
     msg: "{{ switch }}"
 
+- name: generate host_vars for switch
+  ansible.builtin.copy:
+    dest: "{{ role_path }}/files/switch1"
+    content: |
+      ---
+      switch_type: dellos10
+      ansible_host: {{ management_ip.split('/')[0] }}
+      ansible_user: admin
+      ansible_ssh_pass: admin
+      ansible_connection: ansible.netcommon.network_cli
+      ansible_network_os: dellemc.os10.os10
+
+      switch_interface_config:
+        ethernet 1/1/1:
+          description: "Trial description"
+          config:
+            - "no shutdown" # doesn't change anything
+        ethernet 1/1/2:
+          description: "Trial descriptionv2"
+          config:
+            - "no shutdown" # doesn't change anything
+
 - name: Wait until OS10 has finished booting
   ansible.builtin.command:
     argv:
@@ -39,7 +61,6 @@
       - "{{ switch.console_port }}"
       - "{{ management_interface }}"
       - "{{ management_ip }}"
-
 # - name: Verify ping to switch -> doesnt work, needs variable set
 #   ansible.netcommon.net_ping:
 #     dest: "{{ management_ip }}"

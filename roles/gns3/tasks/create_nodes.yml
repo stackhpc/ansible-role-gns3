@@ -24,11 +24,12 @@
     node_type: "{{ gns3_switch_model }}"
   when: not node_status.switch_node_present
 
-- name: Create Cloud Node
+- name: Create Required Cloud Nodes
   create_nodes:
     project_name: "{{ gns3_project_name }}"
     node_type: "Cloud"
-    cloud_ports_mapping: "{{ gns3_cloud_ports_mapping }}"
+    cloud_node_quantity: "{{ gns3_cloud_node_quantity }}"
+    cloud_interfaces: "{{ gns3_cloud_interfaces }}"
   when: not node_status.cloud_node_present
 
 - name: Start nodes

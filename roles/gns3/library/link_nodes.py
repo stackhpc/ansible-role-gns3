@@ -79,7 +79,6 @@ def run_module():
             for node in project.nodes
         }
 
-
         # Create links between nodes
         if links:
 

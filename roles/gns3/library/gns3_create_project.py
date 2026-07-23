@@ -43,6 +43,7 @@ def run_module():
 
         project.create()
         project.open()
+        project.update(auto_close=False)
         project.get()
 
         module.exit_json(
