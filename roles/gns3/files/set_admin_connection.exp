@@ -9,8 +9,10 @@ if {$argc != 3} {
 }
 
 set port [lindex $argv 0]
-set iface [lindex $argv 1]
-set ipaddr [lindex $argv 2]
+set mgmt_iface [lindex $argv 1]
+set mgmt_ipaddr [lindex $argv 2]
+set os_iface [lindex $argv 3]
+set tenks_iface [lindex $argv 4]
 
 spawn telnet localhost $port
 
@@ -180,13 +182,13 @@ expect {
     -re {Cancelling ZTD Process.*OS10\(config\)#} {}
 }
 
-send "interface $iface\r"
+send "interface $mgmt_iface\r"
 expect -re {OS10\(conf-if.*\)#}
 
 send "no ip address dhcp\r"
 expect -re {OS10\(conf-if.*\)#}
 
-send "ip address $ipaddr\r"
+send "ip address $mgmt_ipaddr\r"
 expect -re {OS10\(conf-if.*\)#}
 
 send "no shutdown\r"
@@ -194,6 +196,28 @@ expect -re {OS10\(conf-if.*\)#}
 
 send "exit\r"
 expect -re {OS10\(config\)#}
+
+#
+# Configuring for NGS
+#
+
+send "interface vlan 1234\r"
+send "description ngs\r"
+send "exit\r"
+
+send "interface $os_iface\r"
+send "description os_controller\r"
+send "no switchport mode access\r"
+send "switchport mode trunk\r"
+send "no switchport access vlan 1\r"
+send "switchport trunk allowed vlan 1234\r"
+send "exit\r"
+
+send "interface $tenks_iface\r"
+send "description tenks\r"
+send "exit\r"
+
+send "write memory\r"
 
 #
 # Return to privileged EXEC mode

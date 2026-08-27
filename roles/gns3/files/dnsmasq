@@ -1,0 +1,4 @@
+!/bin/sh
+This is a dummy, will be called by virtlibd (dnsmasq --version)
+echo "Dnsmasq version 2.89"
+exit 0

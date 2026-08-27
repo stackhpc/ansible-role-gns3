@@ -55,6 +55,16 @@ def run_module():
                 "required": False,
                 "default": None,
             },
+            "cloud_interfaces": {
+                "type": "list",
+                "required": False,
+                "default": None,
+            },
+            "cloud_node_quantity": {
+                "type": "int",
+                "required": False,
+                "default": 1,
+            },
         },
         supports_check_mode=True,
     )
@@ -76,9 +86,7 @@ def run_module():
         created_node = None
 
 
-        #
-        # Create Cloud node
-        #
+        # Create
         if node_type.lower() == "cloud":
 
             if module.check_mode:
@@ -87,39 +95,44 @@ def run_module():
                     created_node="Cloud"
                 )
 
-
-            response = gns3_server.http_call(
-                "post",
-                f"{gns3_server.base_url}/projects/{project.project_id}/nodes",
-                json_data={
-                    "name": "Cloud",
-                    "node_type": "cloud",
-                    "compute_id": "local",
-                    "properties": {
-                        "interfaces": []
-                    },
-                    "x": 100,
-                    "y": 100,
-                },
-            )
-
-            created_node = "Cloud"
-
-            cloud_node_id = response.json()["node_id"]
-
-
-            if cloud_ports_mapping:
-
-                gns3_server.http_call(
-                    "put",
-                    f"{gns3_server.base_url}/projects/{project.project_id}/nodes/{cloud_node_id}",
+            for i in range(module.params["cloud_node_quantity"]):
+                response = gns3_server.http_call(
+                    "post",
+                    f"{gns3_server.base_url}/projects/{project.project_id}/nodes",
                     json_data={
+                        "name": "Cloud " + str(i + 1),
+                        "node_type": "",
+                        "symbol": ":/symbols/cloud.svg",
+                        "compute_id": "local",
                         "properties": {
-                            "ports_mapping": cloud_ports_mapping
-                        }
+                            "interfaces": []
+                        },
+                        "x": 100,
+                        "y": 100,
                     },
                 )
 
+                created_node = response.json()["name"]
+
+                cloud_node_id = response.json()["node_id"]
+
+
+                if cloud_ports_mapping:
+
+                    gns3_server.http_call(
+                        "put",
+                        f"{gns3_server.base_url}/projects/{project.project_id}/nodes/{cloud_node_id}",
+                        json_data={
+                            "properties": {
+                                "ports_mapping": {
+                                     "interface": cloud_interface[i]["interface"],
+                                     "name": cloud_interface[i]["name"],
+                                     "port_number": cloud_interface[i]["port_number"],
+                                     "type": cloud_interface[i]["type"]
+                                }
+                            }
+                        },
+                    )
 
         #
         # Create template based node
