@@ -64,12 +64,22 @@ def run_module():
                 ),
                 None,
             )
-
+        if node is None:
+            node = next(
+                (
+                    candidate
+                    for candidate in project.nodes
+                    if candidate.name != "Cloud" and getattr(candidate, "console", None) is not None
+                ),
+                None,
+            )
 
         if node is None:
             module.fail_json(
                 msg=f"Node '{node_name}' not found."
             )
+
+
 
 
         mgmt_port = next(

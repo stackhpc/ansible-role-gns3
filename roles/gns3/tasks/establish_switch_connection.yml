@@ -18,11 +18,11 @@
 
 - name: generate host_vars for switch
   ansible.builtin.copy:
-    dest: "/home/ubuntu/kayobe/config/src/etc/kayobe/inventory/host_vars/switch1"
+    dest: "{{ role_path }}/files/switch1"
     content: |
       ---
       switch_facts_mac: "{{ switch.mac_address }}"
-      ansible_host: "{{ management_ip }}"
+      ansible_host: "192.168.33.10"
       ansible_user: admin
       ansible_ssh_pass: admin
       switch_type: dellos10

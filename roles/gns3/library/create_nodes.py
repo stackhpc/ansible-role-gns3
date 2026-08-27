@@ -14,8 +14,9 @@ module: create_nodes
 short_description: Creates a node in a GNS3 project
 
 description:
-    - Creates a switch node in a GNS3 project based on a specified template or
-    creates a Cloud node.
+    - Creates a node in a GNS3 project based on a specified template.
+    - Creates one or more Cloud nodes when node_type is Cloud.
+    - Cloud interface mappings can be supplied using cloud_interfaces.
 
 options:
     project_name:
@@ -30,11 +31,19 @@ options:
         required: true
         type: str
 
-    cloud_ports_mapping:
+    cloud_interfaces:
         description:
             - Cloud interface mappings.
         required: false
         type: list
+        default: null
+
+    cloud_node_quantity:
+        description:
+            - Number of Cloud nodes to create.
+        required: false
+        type: int
+        default: 1
 """
 
 
@@ -49,11 +58,6 @@ def run_module():
             "node_type": {
                 "type": "str",
                 "required": True,
-            },
-            "cloud_ports_mapping": {
-                "type": "list",
-                "required": False,
-                "default": None,
             },
             "cloud_interfaces": {
                 "type": "list",
@@ -71,37 +75,59 @@ def run_module():
 
     project_name = module.params["project_name"]
     node_type = module.params["node_type"]
-    cloud_ports_mapping = module.params["cloud_ports_mapping"]
+    cloud_interfaces = module.params["cloud_interfaces"]
+    cloud_node_quantity = module.params["cloud_node_quantity"]
 
     try:
 
+        #
+        # Get project
+        #
         project = Project(
             name=project_name,
-            connector=gns3_server
+            connector=gns3_server,
         )
 
         project.get()
 
+        created_nodes = []
 
-        created_node = None
-
-
-        # Create
+        #
+        # Create Cloud nodes
+        #
         if node_type.lower() == "cloud":
 
+            #
+            # Check mode
+            #
             if module.check_mode:
+
                 module.exit_json(
                     changed=True,
-                    created_node="Cloud"
+                    project_name=project_name,
+                    created_nodes=[
+                        f"Cloud{i + 1}"
+                        for i in range(cloud_node_quantity)
+                    ],
                 )
 
-            for i in range(module.params["cloud_node_quantity"]):
+            #
+            # Create each Cloud
+            #
+            for i in range(cloud_node_quantity):
+
+                cloud_name = f"Cloud{i + 1}"
+
+                #
+                # Create Cloud node
+                #
                 response = gns3_server.http_call(
                     "post",
-                    f"{gns3_server.base_url}/projects/{project.project_id}/nodes",
+                    f"{gns3_server.base_url}/projects/"
+                    f"{project.project_id}/nodes",
                     json_data={
-                        "name": "Cloud " + str(i + 1),
-                        "node_type": "",
+                        "name": cloud_name,
+                        "node_type": "cloud",
                         "symbol": ":/symbols/cloud.svg",
                         "compute_id": "local",
                         "properties": {
@@ -112,30 +138,52 @@ def run_module():
                     },
                 )
 
-                created_node = response.json()["name"]
+                response_data = response.json()
 
-                cloud_node_id = response.json()["node_id"]
+                created_node = response_data["name"]
+                cloud_node_id = response_data["node_id"]
 
+                created_nodes.append(created_node)
 
+                #
+                # Build ports_mapping for this Cloud
+                #
+                cloud_ports_mapping = []
+
+                if cloud_interfaces:
+
+                    for interface in cloud_interfaces:
+
+                        if interface.get("cloud") != cloud_name:
+                            continue
+
+                        cloud_ports_mapping.append(
+                            {
+                                "interface": interface["interface"],
+                                "name": interface["name"],
+                                "port_number": interface["port_number"],
+                                "type": interface["type"],
+                            }
+                        )
+
+                #
+                # Update ports_mapping
+                #
                 if cloud_ports_mapping:
 
                     gns3_server.http_call(
                         "put",
-                        f"{gns3_server.base_url}/projects/{project.project_id}/nodes/{cloud_node_id}",
+                        f"{gns3_server.base_url}/projects/"
+                        f"{project.project_id}/nodes/{cloud_node_id}",
                         json_data={
                             "properties": {
-                                "ports_mapping": {
-                                     "interface": cloud_interface[i]["interface"],
-                                     "name": cloud_interface[i]["name"],
-                                     "port_number": cloud_interface[i]["port_number"],
-                                     "type": cloud_interface[i]["type"]
-                                }
+                                "ports_mapping": cloud_ports_mapping
                             }
                         },
                     )
 
         #
-        # Create template based node
+        # Create template-based node
         #
         else:
 
@@ -153,13 +201,18 @@ def run_module():
                     template = template_name
                     break
 
-
+            #
+            # Template not found
+            #
             if not template:
+
                 module.fail_json(
                     msg=f"No GNS3 template found matching '{node_type}'"
                 )
 
-
+            #
+            # Create node
+            #
             if not module.check_mode:
 
                 node = Node(
@@ -171,15 +224,16 @@ def run_module():
 
                 node.create()
 
-            created_node = node_type
+            created_nodes.append(node_type)
 
-
+        #
+        # Return
+        #
         module.exit_json(
             changed=True,
             project_name=project_name,
-            created_node=created_node,
+            created_nodes=created_nodes,
         )
-
 
     except Exception as exc:
 
