@@ -1,5 +1,5 @@
-set -euo pipefail
 
+set -euo pipefail
 echo "STARTING DEMO SCRIPT..."
 echo "CLONING KAYOBE REPO..."
 git clone https://github.com/L-Chams/kayobe.git -b initFunc
@@ -63,7 +63,7 @@ source ~/kayobe-venv/bin/activate
 
 cd ~/gns3-ansible-role
 
-# # Install GNS3
+# Install GNS3
 echo "RUNNING ANSIBLE PLAYBOOK TO INSTALL GNS3..."
 ansible-playbook -i inventory.ini trialplaybook.yml -vvv
 echo "GNS3 INSTALLED!"
@@ -92,6 +92,8 @@ cd ~/kayobe
 
 ./dev/overcloud-init.sh
 
+echo "DEPLOYING OVERCLOUD SERVICES..."
+
 kayobe overcloud service deploy --use-test-images
 
 kayobe overcloud host configure
@@ -119,7 +121,7 @@ kayobe overcloud post configure
 if  sudo docker ps | grep nova_libvirt | grep unhealthy; then
   echo "nova_libvirt container is unhealthy, restarting it..."
   sudo docker restart nova_libvirt
-  sleep 90 # wait for nova_libvirt to restart
+  sleep 180 # wait for nova_libvirt to restart
 fi
 
 # Set maintenance mode for baremetal nodes
