@@ -71,22 +71,16 @@ echo "GNS3 INSTALLED!"
 
 
 
-# # copy host_vars for switch to kayobe config
+# copy host_vars for switch to kayobe config
 sudo cp ~/gns3-ansible-role/roles/gns3/files/switch1 \
   ~/kayobe/config/src/kayobe-config/etc/kayobe/inventory/host_vars/switch1
+
 cd ~/kayobe/config/src/kayobe-config
-
 git stash
-
-
-cd ~/kayobe
 git fetch https://github.com/L-Chams/kayobe-config-dev NGS
 git -c user.name="Automation" \
    -c user.email="automation@localhost" \
-   cherry-pick 84b6cd948230134dceb4937d0fe28f19200bd8a9
-git cherry-pick 84b6cd948230134dceb4937d0fe28f19200bd8a9
-
-
+   cherry-pick 55069f89773ead9c18c5c54c0a17d542aeca8db0
 
 # Add dummy libvirt
 sudo cp ~/gns3-ansible-role/roles/gns3/files/dnsmasq /usr/sbin/dnsmasq
@@ -94,6 +88,7 @@ sudo cp ~/gns3-ansible-role/roles/gns3/files/dnsmasq /usr/sbin/dnsmasq
 source ~/kayobe/config/src/kayobe-config/kayobe-env
 pip install -e ~/kayobe
 
+cd ~/kayobe
 
 ./dev/overcloud-init.sh
 
@@ -108,8 +103,11 @@ source ~/kayobe/config/src/kayobe-config/etc/kolla/public-openrc.sh
 # Delete demo-router if it exists, provision-net and remake provision-net as vlan type
 if openstack router list | grep demo-router; then
   echo "demo-router exists, deleting it..."
-  demo_router_port=$(openstack port list --router demo-router -f value -c ID)
-  openstack router remove port demo-router $demo_router_port
+  while read -r demo_router_port; do
+    if ! openstack router remove port demo-router "$demo_router_port"; then
+      echo "WARNING: failed to remove port $demo_router_port from demo-router; continuing..." >&2
+    fi
+  done < <(openstack port list --router demo-router -f value -c ID)
   openstack router delete demo-router
 fi
 openstack network delete provision-net
@@ -117,10 +115,11 @@ openstack network delete provision-net
 # Generate new provision-net using post configure
 kayobe overcloud post configure
 
-# Rstart nova_libvirt if docker container is unhealthy
+# Restart nova_libvirt if docker container is unhealthy
 if  sudo docker ps | grep nova_libvirt | grep unhealthy; then
   echo "nova_libvirt container is unhealthy, restarting it..."
   sudo docker restart nova_libvirt
+  sleep 90 # wait for nova_libvirt to restart
 fi
 
 # Set maintenance mode for baremetal nodes
