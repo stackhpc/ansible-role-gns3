@@ -37,6 +37,19 @@
           description: "Trial descriptionv2"
           config:
             - "no shutdown" # doesn't change anything
+  when: gns3_integration_mode == "kayobe_physical_network_configuration"
+
+- name: generate host_vars for switch
+  ansible.builtin.copy:
+    dest: "{{ role_path }}/files/switch1"
+    content: |
+      ---
+      switch_facts_mac: "{{ switch.mac_address }}"
+      ansible_host: "192.168.33.10"
+      ansible_user: admin
+      ansible_ssh_pass: admin
+      switch_type: dellos10
+  when: gns3_integration_mode == "ngs"
 
 - name: Wait until OS10 has finished booting
   ansible.builtin.command:
@@ -53,7 +66,7 @@
   ansible.builtin.pause:
     seconds: "{{ gns3_switch_boot_delay | default(180) }}"
 
-- name: Configure switch
+- name: Establish connection to switch
   ansible.builtin.command:
     argv:
       - expect
@@ -61,7 +74,14 @@
       - "{{ switch.console_port }}"
       - "{{ management_interface }}"
       - "{{ management_ip }}"
-# - name: Verify ping to switch -> doesnt work, needs variable set
-#   ansible.netcommon.net_ping:
-#     dest: "{{ management_ip }}"
-#     count: 5
+
+- name: Configure switch for NGS
+  ansible.builtin.command:
+    argv:
+      - expect
+      - "{{ role_path }}/files/ngs_setup.exp"
+      - "{{ switch.console_port }}"
+      - "{{ os_controller_interface }}"
+      - "{{ baremetal_interface }}"
+      - "{{ vlan_tag }}"
+  when: gns3_integration_mode == "ngs"

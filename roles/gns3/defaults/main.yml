@@ -29,3 +29,4 @@ gns3_templates: []
 # Configuration
 management_ip: "192.168.33.10/24"
 management_interface: "mgmt 1/1/1"
+vlan_tag: 1234

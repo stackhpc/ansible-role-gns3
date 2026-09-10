@@ -1,0 +1,232 @@
+#!/usr/bin/expect -f
+
+# Wait indefinitely for the initial boot/login prompt.
+set timeout -1
+
+if {$argc != 4} {
+    puts "Requires 4 arguments: <telnet_port> <os_iface> <tenks_iface> <vlan_tag>"
+    exit 1
+}
+
+set port [lindex $argv 0]
+set os_iface [lindex $argv 1]
+set tenks_iface [lindex $argv 2]
+set vlan_tag [lindex $argv 3]
+
+spawn telnet localhost $port
+
+# Uncomment for debugging
+exp_internal 1
+
+#
+# Send enter once to prompt
+#
+
+sleep 3
+
+send "\r"
+send "\r"
+send "\r"
+
+expect -re {OS10 login:}
+send "admin\r"
+
+expect -re {Password:}
+send "admin\r"
+
+#
+# Try logging in as admin first
+#
+expect {
+    -re {OS10#} {
+        puts "Logged in as admin."
+    }
+
+    -re {Login incorrect} {
+        puts "Admin login failed. Resetting password via linuxadmin."
+
+        expect -re {OS10 login:}
+        send "linuxadmin\r"
+
+        expect -re {Password:}
+        send "linuxadmin\r"
+
+        expect -re {linuxadmin@OS10:~\$ *}
+
+        send "sudo passwd admin\r"
+
+expect {
+    -re {\[sudo\] password for linuxadmin:} {
+        send "linuxadmin\r"
+
+        expect {
+            -re {New password:} {
+                send "admin\r"
+
+                expect -re {Retype new password:}
+                send "admin\r"
+
+                expect -re {linuxadmin@OS10:~\$ *}
+            }
+
+            -re {passwd: user 'admin' does not exist} {
+                puts "admin user does not exist yet. Waiting 3 minutes before retrying..."
+                sleep 180
+
+                send "sudo passwd admin\r"
+
+                expect -re {\[sudo\] password for linuxadmin:}
+                send "linuxadmin\r"
+
+                expect -re {New password:}
+                send "admin\r"
+
+                expect -re {Retype new password:}
+                send "admin\r"
+
+                expect -re {linuxadmin@OS10:~\$ *}
+            }
+
+            timeout {
+                puts "Timed out waiting for passwd."
+                exit 1
+            }
+        }
+    }
+
+    -re {passwd: user 'admin' does not exist} {
+        puts "admin user does not exist yet. Waiting 3 minutes before retrying..."
+        sleep 180
+
+        send "sudo passwd admin\r"
+
+        expect -re {\[sudo\] password for linuxadmin:}
+        send "linuxadmin\r"
+
+        expect -re {New password:}
+        send "admin\r"
+
+        expect -re {Retype new password:}
+        send "admin\r"
+
+        expect -re {linuxadmin@OS10:~\$ *}
+    }
+
+    timeout {
+        puts "Timed out starting passwd."
+        exit 1
+    }
+}
+
+        expect -re {linuxadmin@OS10:~\$ *}
+
+        send "exit\r"
+
+        send "\r"
+        send "\r"
+        send "\r"
+
+        expect -re {OS10 login:}
+        send "admin\r"
+
+        expect -re {Password:}
+        send "admin\r"
+
+        expect {
+            -re {OS10#} {}
+
+            timeout {
+                puts "Failed to login as admin after password reset."
+                close
+                wait
+                exit 1
+            }
+        }
+    }
+
+    timeout {
+        puts "Timed out waiting for login result."
+        close
+        wait
+        exit 1
+    }
+}
+
+#
+# Wait until we reach the CLI
+#
+
+send "\r"
+send "\r"
+send "\r"
+
+expect {
+    -re {OS10#} {}
+
+    timeout {
+        puts "Failed to login as admin."
+        close
+        wait
+        exit 1
+    }
+}
+
+#
+# Configure switch
+#
+send "configure terminal\r"
+
+expect {
+    -re {OS10\(config\)#} {}
+    -re {Cancelling ZTD Process.*OS10\(config\)#} {}
+}
+
+#
+# Configuring for NGS
+#
+
+send "interface vlan $vlan_tag \r"
+send "description ngs\r"
+send "exit\r"
+
+send "interface $os_iface\r"
+send "description os_controller\r"
+send "switchport mode trunk\r"
+send "no switchport mode access\r"
+send "no switchport access vlan \r"
+send "switchport trunk allowed vlan $vlan_tag\r"
+send "exit\r"
+
+send "interface $tenks_iface\r"
+send "description tenks\r"
+send "exit\r"
+
+send "write memory\r"
+
+#
+# Return to privileged EXEC mode
+#
+send "end\r"
+expect -re {OS10#}
+
+#
+# Save configuration
+#
+send "write memory\r"
+expect -re {OS10#}
+
+#
+# Logout of the switch
+#
+send "exit\r"
+
+# Wait until we're back at the login prompt
+expect -re {OS10 login:}
+
+#
+# Close the telnet session cleanly
+#
+close
+wait
+
+exit 0

@@ -14,10 +14,14 @@
           port_number: 0
           type: ethernet
         gns3_links:
-        - source_node: "{{ gns3_switch_model }}"
+        - source_node:   "{{ gns3_switch_model }}"
           source_adapter: 0
           source_port: 0 #mgmt 1/1/1
           target_node: Cloud1
           target_adapter: 0
           target_port: 0
         gns3_switch_boot_delay: 181
+        gns3_integration_mode: "kayobe_physical_network_configuration" # alternatively: ngs
+        vlan_tag: 1234
+        os_controller_interface: "eth 1/1/1"
+        baremetal_interface: "eth 1/1/2"
