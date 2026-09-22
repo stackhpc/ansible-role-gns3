@@ -1,6 +1,7 @@
 ---
 gns3_project_name: "gns3_project"
 gns3_work_dir: "{{ ansible_facts['env']['HOME'] }}/gns3-work"
+gns3_ansible_host_vars_dir: "ANSIBLE_HOME/inventory/hostvars"
 
 gns3_cloud_node_quantity: 3
 

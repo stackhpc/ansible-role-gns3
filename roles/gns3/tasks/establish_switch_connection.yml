@@ -18,7 +18,7 @@
 
 - name: generate host_vars for switch
   ansible.builtin.copy:
-    dest: "{{ role_path }}/files/switch1"
+    dest: "{{ gns3_ansible_host_vars_dir }}/switch1"
     content: |
       ---
       switch_type: dellos10
@@ -41,7 +41,7 @@
 
 - name: generate host_vars for switch
   ansible.builtin.copy:
-    dest: "{{ role_path }}/files/switch1"
+    dest: "{{ gns3_ansible_host_vars_dir }}/switch1"
     content: |
       ---
       switch_facts_mac: "{{ switch.mac_address }}"
