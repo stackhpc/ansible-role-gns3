@@ -1,0 +1,122 @@
+---
+- name: Load appliance defaults
+  ansible.builtin.include_vars:
+    file: appliance_defaults.yml
+
+- name: Validate selected switch model
+  ansible.builtin.assert:
+    that:
+      - switch_type in gns3_appliance_defaults
+    fail_msg: "Unsupported switch type: {{ switch_type }}"
+
+- name: Set appliance configuration
+  ansible.builtin.set_fact:
+    appliance_config: "{{ gns3_appliance_defaults[switch_type] }}"
+
+- name: Check if required template is already uploaded
+  gns3_template_summary:
+    project_name: "{{ gns3_project_name }}"
+    gns3_switch_model: "{{ gns3_switch_model }}"
+  register: template_status
+
+- name: Print template status
+  ansible.builtin.debug:
+    msg: "{{ template_status }}"
+
+- name: Install and upload required templates if not already present
+  when: not template_status.exists
+  block:
+
+    - name: Ensure QEMU image directory exists
+      ansible.builtin.file:
+        path: /home/ubuntu/GNS3/images/QEMU
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Ensure appliance file directory exists
+      ansible.builtin.file:
+        path: "{{ gns3_work_dir }}/{{ appliance_config.switch_type }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Download GNS3 appliance zip files
+      ansible.builtin.get_url:
+        url: "{{ appliance_config.gns3_appliance_zip_url }}"
+        dest: "{{ gns3_work_dir }}/{{ appliance_config.switch_type }}/{{ appliance_config.gns3_appliance_zip_file }}"
+        mode: '0644'
+      when: appliance_config.gns3_appliance_download_type == "zip"
+
+    - name: Download GNS3 separate appliance files
+      ansible.builtin.get_url:
+        url: "{{ item.url }}"
+        dest: "{{ gns3_work_dir }}/{{ appliance_config.switch_type }}/{{ item.filename }}"
+        mode: '0644'
+      loop: "{{ appliance_config.gns3_appliance_files }}"
+      when: appliance_config.gns3_appliance_download_type == "separate"
+
+    - name: Extract zipped appliance files
+      ansible.builtin.unarchive:
+        src: "{{ gns3_work_dir }}/{{ appliance_config.switch_type }}/{{ appliance_config.gns3_appliance_zip_file }}"
+        dest: "{{ gns3_work_dir }}/{{ appliance_config.switch_type }}"
+        remote_src: true
+      when: appliance_config.gns3_appliance_download_type == "zip"
+
+    - name: Find .vmdk files
+      ansible.builtin.find:
+        paths: "{{ gns3_work_dir }}/{{ appliance_config.switch_type }}"
+        patterns: "*.vmdk"
+        file_type: file
+      register: vmdk_files
+
+    - name: Find .img files
+      ansible.builtin.find:
+        paths: "{{ gns3_work_dir }}/{{ appliance_config.switch_type }}"
+        patterns: "*.img"
+        file_type: file
+      register: img_files
+
+    - name: Copy .vmdk files to GNS3 image directory
+      ansible.builtin.copy:
+        src: "{{ item.path }}"
+        dest: "/home/ubuntu/GNS3/images/QEMU/{{ item.path | basename }}"
+        remote_src: true
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+        force: false
+      loop: "{{ vmdk_files.files }}"
+
+    - name: Copy .img files to GNS3 image directory
+      ansible.builtin.copy:
+        src: "{{ item.path }}"
+        dest: "/home/ubuntu/GNS3/images/QEMU/{{ item.path | basename }}"
+        remote_src: true
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+        force: false
+      loop: "{{ img_files.files }}"
+
+    - name: Find GNS3 appliance template files
+      ansible.builtin.find:
+        paths: "{{ gns3_work_dir }}/{{ appliance_config.switch_type }}"
+        patterns: "*.gns3a"
+        file_type: file
+      register: gns3_appliance_templates
+
+    - name: Set template upload list
+      ansible.builtin.set_fact:
+        gns3_templates: "{{ gns3_appliance_templates.files | map(attribute='path') | list }}"
+
+    - name: Upload GNS3 appliance templates to GNS3 server
+      gns3_template_upload:
+        templates: "{{ gns3_templates }}"
+
+    - name: remove work directory after upload
+      ansible.builtin.file:
+        path: "{{ gns3_work_dir }}"
+        state: absent

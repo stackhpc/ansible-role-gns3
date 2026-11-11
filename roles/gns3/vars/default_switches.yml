@@ -1,0 +1,21 @@
+---
+gns3_appliance_defaults:
+  dellos10:
+    switch_type: dellos10
+    gns3_switch_model: "Dell OS10 S4000-10.5.6.13.327"
+    gns3_appliance_download_type: "combined"
+    gns3_appliance_zip_url: "https://dl.dell.com/downloads/WK6PP_Dell-SmartFabric-OS10-Version,-10.5.6.13,-GNS3-Bundle.zip"
+    gns3_appliance_zip_file: "Dell-SmartFabric-OS10.5.6.13.zip"
+
+  dell-sonic:
+    switch_model: dell-sonic
+    switch_type: dell-sonic
+    gns3_appliance_download_type: "separate"
+    gns3_appliance_files:
+      - url: "REPLACE ME"
+        filename: ""
+        type: appliance_file
+
+      - url: "REPLACE ME"
+        filename: ""
+        type: image
